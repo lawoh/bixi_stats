@@ -347,7 +347,7 @@ def main():
             st.pyplot(fig)
 
         st.markdown(f"""
-            <div style='text-align: center; color: #666; padding: 20px; margin-top: 0.5rem;'>
+            <div style='text-align: center; color: #666; padding: 10px; margin-top: 0.1rem;'>
                 Analyse des données BIXI Montréal par Laouali ADA AYA - {annee_selectionnee}
             </div>
         """, unsafe_allow_html=True)
