@@ -127,17 +127,6 @@ css = f"""
 <!-- Font Awesome -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 """
-
-def header_with_bikes():
-    return f"""
-        <div class="header-container">
-            <div class="title-container">
-                <i class="fas fa-bicycle bike-icon"></i>
-                <h1 class="main-title">Analyse des données BIXI Montréal</h1>
-                <i class="fas fa-bicycle bike-icon"></i>
-            </div>
-        </div>
-    """
 @st.cache_data
 def charger_donnees(annee):
     """Charge et analyse les données BIXI pour une année spécifique"""
@@ -249,8 +238,13 @@ def creer_carte(gdf_stations):
     return carte
 
 def main():
+     # Injection du CSS
     st.markdown(css, unsafe_allow_html=True)
-    st.markdown(header_with_bikes(), unsafe_allow_html=True)
+    st.markdown(f"""
+        <div class="header-container">
+            <h1 class="main-title">Analyse des données BIXI Montréal</h1>
+        </div>
+    """, unsafe_allow_html=True)
 
     chemin_bixis = './bixi_data'
     annees_disponibles = [d for d in os.listdir(chemin_bixis) 
@@ -347,7 +341,7 @@ def main():
             st.pyplot(fig)
 
         st.markdown(f"""
-            <div style='text-align: center; color: #666; padding: 20px; margin-top: 0.5rem;'>
+            <div style='text-align: center; color: #666; padding: 5px; margin-top: 0.1rem;'>
                 Analyse des données BIXI Montréal par Laouali ADA AYA - {annee_selectionnee}
             </div>
         """, unsafe_allow_html=True)
