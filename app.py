@@ -4,7 +4,6 @@ import geopandas as gpd
 from shapely.geometry import Point
 import os
 import matplotlib.pyplot as plt
-import mplcursors
 import folium
 from folium import plugins
 from folium.plugins import MarkerCluster
@@ -43,8 +42,8 @@ css = f"""
 <style>
     .stApp {{
         background-color: {BIXI_COLORS['white']};
-        padding-bottom: 0 !important;
     }}
+    
     .header-container {{
         padding: 2rem;
         background-color: {BIXI_COLORS['red']};
@@ -59,21 +58,6 @@ css = f"""
         font-size: 2.5rem;
         font-weight: bold;
         margin-bottom: 1rem;
-        display: inline-block;
-    }}
-    
-    .bike-icon {{
-        font-size: 2.5rem;
-        color: {BIXI_COLORS['white']};
-        margin: 0 1rem;
-        vertical-align: middle;
-    }}
-
-    .title-container {{
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 1rem;
     }}
     
     .metric-card {{
@@ -123,38 +107,36 @@ css = f"""
         border: 2px solid {BIXI_COLORS['blue']};
     }}
 </style>
-
-<!-- Font Awesome -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 """
 
-def header_with_bikes():
-    return f"""
-        <div class="header-container">
-            <div class="title-container">
-                <i class="fas fa-bicycle bike-icon"></i>
-                <h1 class="main-title">Analyse des données BIXI Montréal</h1>
-                <i class="fas fa-bicycle bike-icon"></i>
-            </div>
-        </div>
-    """
 @st.cache_data
 def charger_donnees(annee):
-    """Charge et analyse les données BIXI pour une année spécifique"""
+    """
+    Charge et analyse les données BIXI pour une année spécifique.
+    
+    Args:
+        annee (str): L'année pour laquelle charger les données
+        
+    Returns:
+        dict: Dictionnaire contenant toutes les analyses calculées
+    """
     resultats = {}
-    chemin_bixis = './bixi_data'
+    chemin_bixis = './bixis'
     chemin_annee = os.path.join(chemin_bixis, str(annee))
     
     try:
+        # Chargement du fichier des stations
         stations_file = f"Stations_{annee}.csv"
         stations_path = os.path.join(chemin_annee, stations_file)
         df_stations = pd.read_csv(stations_path)
         if len(df_stations.columns) == 1 and ';' in df_stations.columns[0]:
             df_stations = pd.read_csv(stations_path, sep=';')
             
+        # Création du GeoDataFrame pour les stations
         geometry = [Point(xy) for xy in zip(df_stations['longitude'], df_stations['latitude'])]
         gdf_stations = gpd.GeoDataFrame(df_stations, geometry=geometry, crs="EPSG:4326")
         
+        # Chargement des fichiers de trajets
         fichiers = [f for f in os.listdir(chemin_annee) 
                    if f.endswith('.csv') and not f.startswith('Stations')]
         
@@ -168,6 +150,7 @@ def charger_donnees(annee):
         df_annee['start_date'] = pd.to_datetime(df_annee['start_date'])
         df_annee['end_date'] = pd.to_datetime(df_annee['end_date'])
 
+        # Calcul des différentes statistiques
         resultats['stations'] = gdf_stations
         resultats['duree_moyenne'] = df_annee['duration_sec'].mean() / 60
         
@@ -177,6 +160,7 @@ def charger_donnees(annee):
         resultats['membres'] = len(df_annee[df_annee['is_member'] == 1])
         resultats['occasionnels'] = len(df_annee[df_annee['is_member'] == 0])
         
+        # Analyse de la répartition par période
         df_annee['hour'] = df_annee['start_date'].dt.hour
         bins = [0, 6, 12, 18, 24]
         labels = ['0h-6h', '6h-12h', '12h-18h', '18h-24h']
@@ -191,11 +175,14 @@ def charger_donnees(annee):
 
 def creer_carte(gdf_stations):
     """Crée une carte Folium avec clustering des stations"""
+    # Création de la carte avec OpenStreetMap par défaut
     carte = folium.Map(
         location=[45.5236, -73.5985],
         zoom_start=12,
-        tiles=None
+        tiles=None  # On commence sans fond de carte
     )
+    
+    # Ajout des différents fonds de carte disponibles
     
     folium.TileLayer(
         tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
@@ -225,12 +212,14 @@ def creer_carte(gdf_stations):
         control=True
     ).add_to(carte)
 
+    # Création du cluster de marqueurs
     marker_cluster = MarkerCluster(
         name='Stations BIXI',
         overlay=True,
         control=True
     )
 
+    # Ajout des stations au cluster
     for _, station in gdf_stations.iterrows():
         folium.CircleMarker(
             location=[float(station.geometry.y), float(station.geometry.x)],
@@ -244,28 +233,39 @@ def creer_carte(gdf_stations):
         ).add_to(marker_cluster)
 
     marker_cluster.add_to(carte)
+    
+    # Ajout du contrôle de couches en haut à droite
     folium.LayerControl(position='topright').add_to(carte)
     
     return carte
 
 def main():
+    # Injection du CSS
     st.markdown(css, unsafe_allow_html=True)
-    st.markdown(header_with_bikes(), unsafe_allow_html=True)
+    st.markdown(f"""
+        <div class="header-container">
+            <h1 class="main-title">Analyse des données BIXI Montréal</h1>
+        </div>
+    """, unsafe_allow_html=True)
 
-    chemin_bixis = './bixi_data'
+    # Liste des années disponibles
+    chemin_bixis = './bixis'
     annees_disponibles = [d for d in os.listdir(chemin_bixis) 
                        if os.path.isdir(os.path.join(chemin_bixis, d))]
     annees_disponibles.sort()
 
+    # Sélecteur d'année uniquement
     annee_selectionnee = st.selectbox(
         'Sélectionnez une année',
         annees_disponibles,
         index=annees_disponibles.index('2014')
     )
 
+    # Chargement des données
     resultats_annee = charger_donnees(annee_selectionnee)
 
     if resultats_annee:
+        # Affichage des métriques
         st.markdown('<div class="section-header">Statistiques générales</div>', unsafe_allow_html=True)
         
         col1, col2, col3, col4 = st.columns(4)
@@ -304,6 +304,7 @@ def main():
 
         st.markdown('<br>', unsafe_allow_html=True)
         
+        # Visualisations
         col_carte, col_graphe = st.columns(2, gap="small")
         
         with col_carte:
@@ -324,15 +325,6 @@ def main():
                 width=0.7
             )
             
-            # Ajout des infobulles
-            cursor = mplcursors.cursor(bars, hover=True)
-            @cursor.connect("add")
-            def on_hover(sel):
-                x = sel.target.index
-                y = sel.target.get_ydata()[0]
-                sel.annotation.set_text(f'Période: {donnees_triees.index[x]}\nProportion: {y:.1f}%')
-                sel.annotation.get_bbox_patch().set(fc="white", alpha=0.8)
-            
             plt.xticks(rotation=45)
             ax.set_ylabel('')
             ax.tick_params(colors=BIXI_COLORS['blue'])
@@ -342,12 +334,14 @@ def main():
             
             ax.yaxis.grid(True, linestyle='--', alpha=0.7)
             ax.set_axisbelow(True)
+            
             plt.tight_layout(pad=0.5)
             
             st.pyplot(fig)
 
+        # Footer
         st.markdown(f"""
-            <div style='text-align: center; color: #666; padding: 10px; margin-top: 0.1rem;'>
+            <div style='text-align: center; color: #666; padding: 20px; margin-top: 0.5rem;'>
                 Analyse des données BIXI Montréal par Laouali ADA AYA - {annee_selectionnee}
             </div>
         """, unsafe_allow_html=True)
