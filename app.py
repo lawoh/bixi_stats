@@ -43,8 +43,9 @@ css = f"""
 <style>
     .stApp {{
         background-color: {BIXI_COLORS['white']};
+        padding-bottom: 0 !important;
     }}
-    
+    footer { margin-bottom: 0 !important; padding-bottom: 0 !important; }
     .header-container {{
         padding: 2rem;
         background-color: {BIXI_COLORS['red']};
