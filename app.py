@@ -301,7 +301,7 @@ def main():
         col_carte, col_graphe = st.columns(2, gap="small")
         
         with col_carte:
-            st.markdown('<div class="section-header">Stations BIXI</div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-header">Stations BIXI {annee_selectionnee}</div>', unsafe_allow_html=True)
             carte = creer_carte(resultats_annee['stations'])
             st_folium(carte, width=None, height=500)
         
